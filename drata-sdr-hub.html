@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drata · SDR Command of Messaging Hub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: #0F1117; color: #F1F5F9; }
+  button { font-family: inherit; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #1A1D2E; } ::-webkit-scrollbar-thumb { background: #312E81; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+// ─── DISCOVERY DATA ──────────────────────────────────────────────────────────
+const discoveryData = {
+  pillars: [
+    {
+      id: "compliance", label: "Compliance", icon: "🛡️",
+      subtitle: "Evidence automation · Multi-framework · Continuous monitoring",
+      personas: [
+        {
+          id: "econ", label: "Economic Buyer", role: "CISO / VP of Security",
+          titles: "CISO, VP of Security, VP of Information Security, Head of Security, Director of Security",
+          driver: "Board and regulator accountability — they own the risk posture and answer for it",
+          caresMost: "Reducing risk exposure, passing audits without fire drills, board-ready reporting, business enablement",
+          caresLess: "Day-to-day mechanics — delegates execution, owns outcomes",
+          buysWhen: "Current approach creates regulatory, reputational, or operational risk — or blocks expansion",
+          winSignal: "Asks about roadmap, migration plan, internal approval process, who else should see this",
+          context: "Avg ~4 frameworks growing to 5–7. ~980 hrs/yr per framework of manual evidence work before automation",
+          sections: [
+            { id: "situation", label: "Situation", questions: ["Walk me through how your team handles compliance today — from evidence collection all the way through audit prep.", "How many frameworks are you managing right now, and what's on the roadmap for the next 18 months? Are NIS2, CMMC, or AI governance frameworks coming into scope?", "How often are you running audit cycles, and who's doing the heavy lifting on evidence collection?", "What tool are you using today, and when does that contract come up?"] },
+            { id: "pain", label: "Pain", questions: ["If controls degrade or drift between audits, how does your team find out — before the auditor does, or after?", "When audit prep season hits, what does the scramble actually look like? Who gets pulled in, and for how long?", "If someone on your compliance team left tomorrow, what institutional knowledge walks out the door with them?", "You're managing multiple frameworks — are your teams mapping controls once and reusing evidence, or duplicating work across each framework?"], coach: "Won-call pattern: the drift question surfaces one of the highest-value pain points. Won deals engaged on control testing 8x more than lost deals. If they can't answer confidently, they're flying blind between audits." },
+            { id: "impact", label: "Impact", questions: ["How many hours per framework does your team spend on manual evidence collection? Across 4 frameworks, what does that add up to annually?", "What's the cost of an audit fire drill in engineering time and leadership attention?", "When you have to report compliance posture to the board, how long does it take to put that together — is it real-time or assembled manually each time?", "Has a compliance gap or audit finding ever slowed a deal, a market expansion, or an M&A process?"] },
+            { id: "goals", label: "Goals", questions: ["If you could be audit-ready year-round — no prep sprint, no scramble — what would that change for your team?", "What does 'board-ready risk posture' look like for you? What would you need to show that you can't show today?", "If you needed to absorb NIS2 or CMMC without adding headcount, what would that require of your platform?"] },
+            { id: "timeline", label: "Timeline", questions: ["What's driving the timing on evaluating a new solution right now?", "When's your next audit? And the one after that — are you going into that cycle with your current process?", "When does your current tool contract renew? Is there a natural window to make a change?"] },
+            { id: "econ", label: "Econ Buyer", questions: ["For a decision like this, is it yours to make or does it need budget approval elsewhere?", "Who else would want visibility into this evaluation — IT, legal, procurement?", "If the platform fits, what does your internal process look like to move forward? What are the gates?"], coach: "Won deals: executive involvement correlates with 2x close rate. If the CISO is already on the call, you have the buyer. If not, map the path. Never leave a first call without knowing who signs off." }
+          ]
+        },
+        {
+          id: "champ", label: "Champion", role: "Head of GRC / Compliance Manager",
+          titles: "Head of GRC, Director of Compliance, Compliance Manager, Senior GRC Analyst, IT Compliance Lead",
+          driver: "Operational efficiency — they own the day-to-day work and feel every hour of manual effort personally",
+          caresMost: "Evidence automation, audit prep speed, not missing a control, not getting caught out by auditors",
+          caresLess: "Board-level risk narrative — that's the CISO's job",
+          buysWhen: "Current process is unsustainable at the volume and pace the business demands",
+          winSignal: "Asks detailed product questions, wants a POC, pulls in engineers to evaluate integrations",
+          context: "1–3 people running compliance for 750–5K FTE. 3–4 audit cycles/yr. 4+ frameworks and growing",
+          sections: [
+            { id: "situation", label: "Situation", questions: ["Walk me through a typical week for your team during audit prep — what does that actually look like day to day?", "How many frameworks are you managing, and are you responsible for evidence collection across all of them?", "What tools are you using today for evidence collection, control tracking, and audit management?", "If you're running multiple business units or subsidiaries, how does compliance get managed across them?"] },
+            { id: "pain", label: "Pain", questions: ["What's the most painful part of evidence collection right now? Screenshots, chasing people for sign-offs, or mapping the same control across multiple frameworks?", "When a control fails or drifts, how do you find out — before your auditor does, or after?", "If a control covers SOC 2, ISO 27001, and NIS2, are you doing that mapping work once or three times?", "When someone leaves the team, how much of the institutional knowledge about your compliance program goes with them?", "How do you track that all your policies are current, acknowledged, and tied to the right controls?"], coach: "Won-call pattern: 'how do you catch drift' and 'what happens when someone leaves' consistently opened the longest conversations. GRC managers often don't realize how exposed their program is until they try to answer these out loud." },
+            { id: "impact", label: "Impact", questions: ["Across all your frameworks, how many hours per year is your team spending on manual evidence collection? ENT teams average ~980 hours per framework before automation.", "How many times a year do you pull together a compliance posture report for leadership? How long does each one take?", "Has a compliance gap ever caused an audit finding, a customer request you couldn't fulfill, or a deal that slowed down?"] },
+            { id: "goals", label: "Goals", questions: ["If 60–80% of your evidence was collected automatically every day, what would your team focus on instead?", "What would it mean to walk into every audit already ready — no prep sprint, just hand the auditor access?", "If you could map a control once and have it satisfy 30+ frameworks automatically, what new frameworks could you absorb without adding headcount?"] },
+            { id: "timeline", label: "Timeline", questions: ["When's your next audit date? Is your current setup going to have you ready?", "What's the contract situation with your current tool — is there a natural window to evaluate alternatives?", "Are new framework requirements — NIS2, CMMC, ISO 42001 — creating pressure on the timeline?"] },
+            { id: "econ", label: "Econ Buyer", questions: ["For a platform decision like this, is it something you'd drive, or does your CISO need to be involved?", "Who owns the budget for GRC tooling — is it you, the security org, or IT?", "If you found a platform that solved all of this, what would your process look like to get it approved?"], coach: "The GRC manager is almost always your champion, not your economic buyer. Ask: 'If you were going to recommend this to your CISO, what would they need to see?'" }
+          ]
+        }
+      ]
+    },
+    {
+      id: "assurance", label: "Assurance", icon: "⚡",
+      subtitle: "Trust Center · AI Questionnaire Assistance · Security as revenue enabler",
+      personas: [
+        {
+          id: "econ", label: "Economic Buyer", role: "VP of Sales / CRO / Revenue Leader",
+          titles: "VP of Sales, CRO, Chief Revenue Officer, Head of Sales, VP Revenue Operations, VP Partnerships",
+          driver: "Deal velocity — security reviews sitting in the queue cost real pipeline and close rate",
+          caresMost: "Sales cycle speed, deals not blocked by security, enterprise buyers who trust the vendor from day one",
+          caresLess: "Compliance mechanics — they care about outcomes, not questionnaire workflows",
+          buysWhen: "They can connect security bottlenecks to deal slippage, missed quarters, or lost enterprise logos",
+          winSignal: "Asks for cycle time data, Trust Center demo, ROI framed in days saved and revenue influenced",
+          context: "Trust Center in 69% of won ENT deals. 10–14 day faster sales cycles. $20M revenue influenced.",
+          sections: [
+            { id: "situation", label: "Situation", questions: ["When a prospect asks for your SOC 2 report or security docs during a deal, what's the process today? Who does that go to, and how long does turnaround take?", "How many inbound security reviews or DDQs is your team handling per month across all active deals?", "Do buyers have a place to self-serve your security posture right now — certs, policies, compliance docs — or does everything route through a human?"] },
+            { id: "pain", label: "Pain", questions: ["How often does a deal stall or slow down because procurement is waiting on a security review?", "When security review is sitting in the queue, what's happening on the deal side? Are reps chasing the security team, or is the prospect going cold?", "Have you lost deals or missed close dates because of security review timelines? How often?", "When enterprise buyers ask to see your security posture, does your current setup give them what they need fast enough to keep the deal moving?"], coach: "Won-call pattern: 'have you lost deals because of security review' consistently surfaced the strongest buying signals from revenue leaders. A sales leader who can attach a number to that pain becomes an internal champion fast." },
+            { id: "impact", label: "Impact", questions: ["If security reviews are adding 10–14 days to each enterprise deal cycle, what does that mean across your pipeline volume?", "If you could remove security review from the critical path on every deal, how many more close this quarter?", "At 250 questionnaires per year at 8 hours each — that's more than one FTE just on answering the same questions. What's the cost of that team's time?"] },
+            { id: "goals", label: "Goals", questions: ["What would it look like if every enterprise buyer could access your certs, policies, and security docs on demand — without NDA back-and-forth or tickets to the security team?", "If you could cut 10+ days out of your average enterprise sales cycle, what would that change about your quarterly close rate?", "What would it mean if security stopped being a bottleneck and started being a competitive differentiator — something you lead with in enterprise deals?"] },
+            { id: "timeline", label: "Timeline", questions: ["Is there a quarter or growth target that's making this feel more urgent right now?", "Are you seeing the security bottleneck get worse as deal volume grows?", "Is there a platform you're using for security document sharing — Whistic, a shared drive — whose contract is coming up?"] },
+            { id: "econ", label: "Econ Buyer", questions: ["A decision like this typically sits across Sales and Security — is that true at your company, or does it live fully in one function?", "If you wanted to move forward, who else would need to be in the room — specifically the CISO or VP of Security?", "What would 'approved' look like at your company? Budget cycle, joint sign-off, committee?"], coach: "Revenue leaders rarely own the security tooling budget alone — they're co-sponsors. Frame it as: 'This is the CISO's platform, but you're the one who benefits most from it being deployed.'" }
+          ]
+        },
+        {
+          id: "champ", label: "Champion", role: "Security Manager / Questionnaire Owner",
+          titles: "Security Manager, GRC Manager, Director of Trust & Compliance, Head of Security Operations, Sr. GRC Analyst",
+          driver: "Getting time back — questionnaire volume is growing and the team is drowning",
+          caresMost: "Answer accuracy, response speed, knowledge management, not copy-pasting across portals",
+          caresLess: "Revenue implications — they see questionnaires as a compliance burden, not a sales tool",
+          buysWhen: "Volume is unsustainable, AI accuracy is credible, and human review stays in the loop",
+          winSignal: "Asks about Chrome Extension, knowledge base quality, multi-product scoping, answer audit trails",
+          context: "~250 questionnaires/yr growing to 350–420. ~8 hrs each manually = 1+ dedicated FTE on questionnaires alone",
+          sections: [
+            { id: "situation", label: "Situation", questions: ["How many security questionnaires, DDQs, or RFP security sections does your team handle per month — and what's the trend?", "Walk me through your current process for responding to a questionnaire from start to finish. Who's involved, how long does each one take?", "What platforms or portals are your customers sending questionnaires through? Is there a consistent format or is it all over the place?", "Do you have a knowledge base for questionnaire responses today? How is it maintained, and how consistent are answers across people?"] },
+            { id: "pain", label: "Pain", questions: ["When two people on your team answer the same question differently across two questionnaires, how does that get caught — or does it?", "What happens when the person who knows all the security answers is out sick or leaves the company? How does the team handle volume without them?", "How much copy-paste is involved in your process? Is your team working in the customer's portal, extracting to a spreadsheet, then pasting back?", "Are there questionnaires you're turning down, delaying, or doing a poor job on because there isn't enough bandwidth?", "If you're a multi-product company, how do you make sure answers for Product A don't appear in a questionnaire for Product B?"], coach: "The Chrome Extension differentiates against Vanta fast: they copy-paste, Drata works in any portal natively. 'What happens when that person leaves' surfaces institutional knowledge risk that's unique to Drata's KB model." },
+            { id: "impact", label: "Impact", questions: ["At 250 questionnaires a year at 8 hours each manually — that's 2,000 hours, roughly one dedicated FTE just on questionnaires. How does your team's capacity compare?", "How many questionnaires are delayed or sitting in backlog right now? How many deals are waiting on one?", "If AI could handle 89% of answers from your approved knowledge base — with human review before anything goes out — where would you reinvest that time?"] },
+            { id: "goals", label: "Goals", questions: ["What would it look like if questionnaires took minutes instead of hours — AI drafting, your team just reviewing before sending?", "What would it mean to build institutional knowledge that compounds over time — so the 500th questionnaire is easier than the 50th?", "If your tool worked directly in any customer portal — no copy-paste, no format translation — how would that change the volume you could handle?"] },
+            { id: "timeline", label: "Timeline", questions: ["Is questionnaire volume already a problem, or a 'give it six months and it will be' problem?", "Is there a current tool contract — Whistic, a standalone AI tool — coming up for renewal?", "Is there a new product launch, geographic expansion, or certification that's going to drive more questionnaires in the next 6 months?"] },
+            { id: "econ", label: "Econ Buyer", questions: ["Who owns the decision for a tool like this — is it you, the CISO, IT security, or shared?", "If you wanted to get this approved, who needs to see it and what would they need to be convinced of?", "Is there a budget that covers security tools like this, or does this need to go through a separate approval?"], coach: "Arm them with: 2,000 hrs/yr reclaimed, ~89% AI answer rate (production metric — Vanta's 87% is a projected figure, not a production metric), Chrome Extension works in any portal. Give them language to use with their boss." }
+          ]
+        }
+      ]
+    },
+    {
+      id: "tprm", label: "TPRM", icon: "🔗",
+      subtitle: "Vendor assessments · Trust Graph · GRC-integrated findings · Agentic AI",
+      personas: [
+        {
+          id: "econ", label: "Economic Buyer", role: "CISO / VP Risk / Chief Risk Officer",
+          titles: "CISO, VP of Risk, Chief Risk Officer, Head of Information Security, VP Security & Compliance",
+          driver: "Board and regulator accountability for third-party exposure — NIS2, DORA, SOC 2 vendor controls",
+          caresMost: "Answering 'do we know our vendor risk' with confidence. Avoiding third-party breach exposure.",
+          caresLess: "Day-to-day assessment mechanics — they care about coverage, confidence, and audit readiness",
+          buysWhen: "A regulatory requirement, board question, or near-miss incident makes the gap undeniable",
+          winSignal: "Asks about GRC integration, continuous monitoring roadmap, board-level reporting, regulatory coverage",
+          context: "600–1,500 vendors. 400–600 assessments/yr. Ponemon 2026: 47% of orgs experienced a third-party breach in prior 12 months",
+          sections: [
+            { id: "situation", label: "Situation", questions: ["How are you managing vendor risk today? Walk me through the process end to end — from how a new vendor gets into the queue to how an assessment gets resolved.", "How many vendors are you managing, and how many assessments are you running annually? How many people are doing those assessments?", "Where does vendor risk data live today — central system, or spread across spreadsheets, email, and shared drives?", "Are your auditors or regulators asking about your TPRM program? Are NIS2 or DORA creating new vendor risk obligations for your business?"] },
+            { id: "pain", label: "Pain", questions: ["When your board or regulators ask 'do we know our vendor risk,' what does that answer look like today? Can you answer it with confidence?", "Are you confident that every vendor in your ecosystem has been assessed recently? Where are the blind spots?", "When a vendor's security posture changes between annual reviews, how do you find out — or do you find out at all?", "NIS2 and DORA are making vendor risk oversight a regulatory obligation. Is your current program documented well enough to satisfy a formal audit?"], coach: "'Can you answer the board question with confidence' consistently surfaces the most honest responses. CISOs who hedge are telling you the program has gaps. Not to attack — to explore what 'documented and defensible' would actually require." },
+            { id: "impact", label: "Impact", questions: ["Ponemon 2026 shows 47% of organizations had a third-party breach in the prior 12 months. Where does your vendor program stand against that exposure?", "If a vendor you haven't assessed recently was breached tomorrow, what would the incident response look like? What's the blast radius?", "What's the business cost — regulatory, reputational, or operational — of a third-party breach that a thorough assessment program might have caught?"] },
+            { id: "goals", label: "Goals", questions: ["What would 'board-ready vendor risk posture' look like — what would you need to show that you can't show today?", "If you could have real-time visibility into vendor posture changes — not annual snapshots — what would that change about your risk exposure?", "If vendor risk findings automatically fed your internal risk register and controls, how would that change your overall risk posture reporting?", "What does a defensible third-party risk program look like for NIS2 or DORA? What's the standard you're trying to meet?"] },
+            { id: "timeline", label: "Timeline", questions: ["Is there a regulatory deadline, a board presentation, or an audit cycle making this a priority right now?", "Is there a contract renewal with your current vendor risk tool — or is this an area where nothing formal exists today?", "If you need a defensible TPRM program before your next audit, when does a platform need to be live?"] },
+            { id: "econ", label: "Econ Buyer", questions: ["For a platform like this, does the budget sit with you, procurement, IT, or a risk committee?", "Who else needs to be in the room for a decision like this — legal, procurement, IT security?", "If this solves the problem, what does your internal process look like to move forward?"], coach: "TPRM can sit in a risk function that reports elsewhere. Map the org before the call. The NIS2/DORA angle creates a hard deadline that spreadsheets can't satisfy — use it." }
+          ]
+        },
+        {
+          id: "champ", label: "Champion", role: "Third-Party Risk Manager / Vendor Risk Analyst",
+          titles: "Third-Party Risk Manager, Vendor Risk Analyst, Procurement Security Manager, TPRM Lead, Sr. GRC Analyst",
+          driver: "Capacity — too many assessments for the team size, and corners are getting cut",
+          caresMost: "Assessment quality, vendor coverage, cycle time, not duplicating follow-up work",
+          caresLess: "Board-level risk narrative — they want the tool to work, and work fast",
+          buysWhen: "Assessment backlog is unmanageable, AI efficiency is credible, evidence quality is defensible",
+          winSignal: "Asks about criteria library, Trust Graph coverage, follow-up automation, GRC integration",
+          context: "150–400 assessments/yr at 16 hrs each manually. 1–3 people managing 600–1,500 vendors",
+          sections: [
+            { id: "situation", label: "Situation", questions: ["Walk me through how a typical vendor assessment works — who initiates it, who does the review, how long does it take, and how does it get closed?", "How many assessments are you running per year, and what does team capacity look like against that volume?", "Where does all the vendor data and assessment output live right now?", "How are new vendors getting into the queue — procurement integration, or everything comes in manually?"] },
+            { id: "pain", label: "Pain", questions: ["Are there vendors that should be getting full assessments but aren't, because there isn't enough bandwidth? What happens to those?", "When a vendor doesn't respond or provides incomplete documentation, what does the follow-up look like? Who chases it?", "How are you deciding which vendors get which depth of review — is there a formal tiering system, or does everything go through the same process?", "If a vendor you've already assessed has an incident or updates their posture, how do you find out? Is there anything triggering a reassessment?", "How are vendor findings connected back to your internal risk register and controls — or are they siloed?"], coach: "'Are there vendors not getting assessed?' is the highest-signal question. The answer is almost always yes. That admission opens the conversation about coverage, depth, and what AI-driven assessment could handle that manual reviews currently can't." },
+            { id: "impact", label: "Impact", questions: ["At 16 hours per manual assessment and your annual volume — what does that math look like? Is your current team capacity enough to cover what the program demands?", "How many assessments are sitting in the backlog right now? What's the risk exposure on the ones that are overdue?", "When corners get cut on vendor reviews because of bandwidth, where do those risks go? Who's accountable if one materializes?"] },
+            { id: "goals", label: "Goals", questions: ["If assessments that take 16 hours today took 4 hours — with AI evaluating evidence against criteria and flagging gaps — what would your team cover that you're not covering now?", "What would it mean to have every finding linked to a criteria baseline with citation, so auditors can verify the logic — not just trust a summary?", "What would 'continuous vendor monitoring' mean for your program? Not annual reviews, but real-time alerts when a vendor's posture changes?", "If your TPRM findings automatically fed your internal risk register, how would that change how you report vendor risk up the chain?"] },
+            { id: "timeline", label: "Timeline", questions: ["Is there a regulatory requirement — NIS2, DORA, SOC 2 vendor controls — creating a hard deadline for having a real TPRM program?", "Is there a current contract coming up for your vendor risk tool, or are you running on spreadsheets today?", "Is there an M&A event, new geography, or significant vendor expansion that will drive assessment volume up?"] },
+            { id: "econ", label: "Econ Buyer", questions: ["Who owns the budget for TPRM tooling — is it you, the CISO, IT security, procurement, or shared?", "If you found a platform that solved the capacity and coverage problem, what would your process look like to get it approved?", "Is the CISO or VP of Risk already aligned on the need for a dedicated TPRM platform, or is part of your job to build that case internally?"], coach: "Give them ammunition: 47% third-party breach rate (Ponemon 2026), 4x faster assessments, criteria-driven outcomes vs questionnaire summaries, continuous monitoring vs point-in-time. Make the case they'll repeat to the CISO." }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+// ─── BATTLE CARD DATA ─────────────────────────────────────────────────────────
+const battleCards = [
+  {
+    id: "differentiators",
+    label: "Core Differentiators",
+    icon: "⚔️",
+    color: "#4F46E5",
+    pillars: [
+      {
+        name: "Enterprise Grade",
+        points: [
+          "One platform: compliance, trust, risk, vendors — no stitching tools together",
+          "Multi-framework cross-mapping (DCF) architectural since day one — Vanta VCF is Early Access only, not GA",
+          "300+ integrations with setup guides and mapped automated tests",
+          "Dedicated CSM and compliance advisors included (not outsourced, not optional at $50K+ ARR)",
+          "Workspaces with data isolation at access layer — Vanta Adaptive Scoping is Public Preview only",
+          "POC carries to production — Vanta POC is throwaway"
+        ]
+      },
+      {
+        name: "Continuous Monitoring",
+        points: [
+          "Automated daily tests replace manual evidence collection",
+          "Real-time posture across compliance and risk — not point-in-time",
+          "Drift caught before your auditor finds it",
+          "AI plain-language explanation of failed tests — no competitor equivalent",
+          "Won deals engaged on control testing at 8x the rate of lost deals"
+        ]
+      },
+      {
+        name: "Agentic AI",
+        points: [
+          "Trust Center deflects inbound security reviews — 85% reduction in questionnaire requests after deployment",
+          "AI completes questionnaires at ~89% accuracy (2M+ answers processed, production metric)",
+          "Vanta claims 87% but it's a projected figure, not a production metric",
+          "AI agents assess vendor risk autonomously — criteria-driven, not questionnaire summaries",
+          "Chrome Extension works in any portal natively — Vanta = copy-paste",
+          "AI learns from your data, never trains on it"
+        ]
+      },
+      {
+        name: "Trusted",
+        points: [
+          "Single-tenant isolation — your data trains only your models",
+          "Uneditable evidence with SHA-256 chain of custody (Audit Agent roadmap)",
+          "Declared audit independence",
+          "Human-in-the-loop: AI guides, you decide — agent never approves/rejects autonomously",
+          "4.7 stars, 97% support satisfaction across 1,150+ G2 reviews"
+        ]
+      }
+    ]
+  },
+  {
+    id: "vs_vanta",
+    label: "Drata vs. Vanta",
+    icon: "🥊",
+    color: "#DC2626",
+    comparisons: [
+      { area: "Cross-framework mapping", drata: "DCF is architectural foundation since day one", vanta: "VCF is Early Access only — not GA" },
+      { area: "Internal audit", drata: "Dedicated internal audit product with RBAC", vanta: "No internal audit product" },
+      { area: "Evidence viewing", drata: "Auditors view evidence in-platform", vanta: "Requires downloading files" },
+      { area: "On-prem / hybrid", drata: "Custom Connections via webhooks and API", vanta: "Manual upload only" },
+      { area: "Questionnaire AI", drata: "~89% answer rate — production metric across 2M+ answers", vanta: "Claims 87% — projected, not production" },
+      { area: "Portal coverage", drata: "Chrome Extension works in any portal natively", vanta: "Copy-paste required" },
+      { area: "Vendor limits", drata: "Unlimited vendors", vanta: "Caps vendors" },
+      { area: "TPRM model", drata: "Criteria-driven, evidence-first with cited findings", vanta: "Questionnaire-driven with AI summaries" },
+      { area: "Onboarding", drata: "Compliance advisors are former auditors, on staff, included", vanta: "Outsources onboarding to Cognisys (third party)" },
+      { area: "POC continuity", drata: "POC carries to production", vanta: "POC is throwaway" },
+      { area: "Trust Center", drata: "Live from underlying compliance platform. 1/3 of Cloud 100.", vanta: "Basic portal — static documents" },
+      { area: "Workspaces", drata: "Data isolation at access layer — 300+ enterprise customers live", vanta: "Adaptive Scoping is Public Preview only" }
+    ]
+  },
+  {
+    id: "objections",
+    label: "Objection Handling",
+    icon: "🛡️",
+    color: "#059669",
+    objections: [
+      {
+        q: "We're already using Vanta",
+        a: "Vanta is building a traditional GRC platform by going wider. We're building an agentic one by going deeper. The practical differences: your team still reviews every questionnaire response with Vanta. With Drata, Trust Center handles inbound automatically. On TPRM, our criteria-driven model produces cited, structured outcomes — Vanta is questionnaire-driven summaries. If cost is the trigger, we price on usage and scale, not aggressive renewal increases. Worth a direct comparison."
+      },
+      {
+        q: "We're happy with our current tool / spreadsheets",
+        a: "What does your next audit cycle look like on your current setup? Most teams tell us the manual work is manageable until it isn't — a new framework, a team member leaving, or a regulatory deadline makes the gap undeniable. The question isn't whether the current approach works today. It's whether it works 18 months from now."
+      },
+      {
+        q: "We're not sure we need AI for questionnaires",
+        a: "At 250 questionnaires a year at 8 hours each manually, that's one dedicated FTE just answering the same questions. Our AI handles ~89% of answers from your approved knowledge base — human review before anything goes out. The 500th questionnaire is dramatically easier than the 50th because the knowledge base compounds. That's not AI replacing your team. It's AI doing the repetitive part so your team does the valuable part."
+      },
+      {
+        q: "We don't have a TPRM problem yet",
+        a: "Ponemon 2026: 47% of organizations experienced a third-party breach in the prior 12 months. Most TPRM gaps aren't visible until an incident. The question to ask: can you answer 'do we know our vendor risk' with confidence for your board or regulators right now? If the answer involves spreadsheets and annual snapshots, NIS2 and DORA are making that insufficient."
+      },
+      {
+        q: "We need to talk to IT / legal / procurement first",
+        a: "That's exactly the right instinct. Who else would want visibility into this evaluation — is there a specific person we should include? The deals that move fastest are the ones where we get the right people in the room early. What would it take to set up a session with [that person] in the next two weeks?"
+      },
+      {
+        q: "It's not in the budget right now",
+        a: "For ENT, Drata saves ~9,100 hours and ~$615K annually across audit prep, vendor assessments, and questionnaires. For CML, it's ~2,900 hours and ~$185K. When does your current contract renew? That's usually the natural window to have the budget conversation."
+      },
+      {
+        q: "What makes your AI different from everyone else's?",
+        a: "It's grounded in five years of real compliance data across thousands of companies — your controls, your frameworks, your evidence patterns. That's why our questionnaire responses are audit-grade, not templated. Human stays in the loop on anything requiring judgment: you approve, you don't blindly accept. And it learns from your data — it never trains on it."
+      }
+    ]
+  },
+  {
+    id: "qualify_out",
+    label: "Qualify Out Rules",
+    icon: "🚪",
+    color: "#D97706",
+    rules: [
+      { trigger: "Primary use case is enterprise risk management (ERM)", action: "Qualify out early. Drata handles cyber risk tied to compliance controls. ERM outside the security domain is not our focus. Say it directly and move on — protecting deal quality is credibility, not weakness." },
+      { trigger: "They want a traditional GRC filing cabinet", action: "Drata is a system of execution, not documentation. If they want a place to store what they've already done, not a platform that tells them what's working and what's broken, this isn't the right fit." },
+      { trigger: "No compliance, audit, or security questionnaire pain", action: "Compliance is the entry point. Without that problem, there's no platform — not just no product fit." },
+      { trigger: "Sub $50K ARR potential with no compliance trigger", action: "Below $50K ARR, compliance advisors move to a chatbot model. Worth understanding budget and scope before investing significant discovery time." }
+    ]
+  }
+];
+
+// ─── ROI DATA ─────────────────────────────────────────────────────────────────
+const roiData = {
+  segments: [
+    {
+      id: "cml",
+      label: "Commercial",
+      subtitle: "100–750 employees",
+      color: "#059669",
+      soundbite: "For a typical 100–750 employee customer running 3 frameworks, Drata saves about 2,900 hours and ~$185K annually by making audit prep ~4.5x faster, vendor assessments 4x faster, and questionnaire responses ~6x faster. That lets teams scale their compliance program without adding headcount.",
+      atAGlance: "~3 frameworks · 100–300 vendors · ~150 vendor assessments/yr · ~100 security questionnaires/yr",
+      metrics: [
+        { area: "Audit Prep (3 frameworks)", before: "~520 hrs/yr per framework (1,560 hrs total)", after: "~4.5x faster", impact: "Weeks of work back per audit cycle" },
+        { area: "Vendor Assessments (TPRM)", before: "~16 hrs per assessment, 150/yr = 2,400 hrs", after: "4x faster (~4 hrs each)", impact: "1,800 hrs/yr saved" },
+        { area: "Security Questionnaires", before: "~4 hrs each, 100/yr = 400 hrs", after: "~5.7x faster (~40 mins each)", impact: "~330 hrs/yr back" },
+      ],
+      growth: [
+        { area: "Frameworks", today: "~3", in18m: "4–5", driver: "AI governance + regulatory expansion (ISO 42001, NIST AI RMF)" },
+        { area: "Vendor assessments/yr", today: "~150", in18m: "215–280", driver: "SaaS sprawl + stricter due diligence" },
+        { area: "Questionnaires/yr", today: "~100", in18m: "120–130", driver: "More buyers requiring security docs" },
+      ],
+      proofPoints: [
+        { company: "Connective", quote: "Cut SOC 2 audits from 5 months to 5 weeks. Questionnaire responses: 3 hours down to 30 seconds.", role: "Ashley Jackson, CIO" },
+        { company: "Surveil", quote: "Achieved SOC 2 Type II + ISO 27001 in 6 months. 75% less audit prep time.", role: "" },
+        { company: "Bito", quote: "80% faster vendor reviews. SOC 2 achieved with a lean DevOps team, no dedicated compliance headcount.", role: "" },
+        { company: "Vellum", quote: "Reduced security questionnaire response time by 97%. 5 minutes instead of 3–5 hours per questionnaire.", role: "" },
+      ]
+    },
+    {
+      id: "ent",
+      label: "Enterprise",
+      subtitle: "750–5,000+ employees",
+      color: "#4F46E5",
+      soundbite: "For a 750–5,000 employee enterprise running 4 frameworks, Drata saves about 9,100 hours and ~$615K annually by making audit prep ~3x faster, vendor assessments 4x faster, and questionnaire responses ~6x faster. For 5,000+ programs, those numbers go significantly higher.",
+      atAGlance: "ENT1 (750–5K): ~4 frameworks · 400–1,200 vendors · 400–600 assessments/yr · ~250 questionnaires/yr",
+      metrics: [
+        { area: "Audit Prep (4 frameworks)", before: "~980 hrs/yr per framework (3,920 hrs total)", after: "~3x faster", impact: "Fire drills eliminated. 10–12 day prep cycles → hours." },
+        { area: "Vendor Assessments (TPRM)", before: "~16 hrs per assessment, 400/yr = 6,400 hrs", after: "4x faster (~4 hrs each)", impact: "4,800 hrs/yr saved" },
+        { area: "Security Questionnaires", before: "~8 hrs each, 250/yr = 2,000 hrs (1+ FTE)", after: "~6x faster (~1.3 hrs each)", impact: "~1,500 hrs/yr back" },
+      ],
+      growth: [
+        { area: "Frameworks", today: "~4", in18m: "5–7", driver: "NIS2, DORA, CMMC — regulatory, not optional" },
+        { area: "Vendor assessments/yr", today: "400–600", in18m: "480–750", driver: "Regulatory mandates + breach pressure" },
+        { area: "Questionnaires/yr", today: "~250", in18m: "350–420", driver: "Enterprise buyer requirements expanding" },
+      ],
+      proofPoints: [
+        { company: "EAB", quote: "85% reduction in questionnaire requests. $20M trust-center influenced revenue.", role: "Brian Markham, CISO" },
+        { company: "GitLab", quote: "50% reduction in security questionnaires YoY. 10–14 day faster sales cycles. Trust Center became a security sales enabler.", role: "Ayoub Fandi, Staff Security Assurance Engineer" },
+        { company: "Brex", quote: "3x productivity in gap monitoring. 5x faster internal audits. 1,100 vendors centralized on Drata.", role: "Eileen Filmus, Head of Trust" },
+        { company: "Lemonade", quote: "80% reduction in audit prep. One executive spent 200+ hours preparing for a SOC 2 audit before Drata.", role: "" },
+        { company: "Instacart", quote: "375 hours (47 business days) saved through standardized questionnaires.", role: "" },
+      ]
+    }
+  ]
+};
+
+// ─── PLATFORM DATA ────────────────────────────────────────────────────────────
+const platformData = {
+  whatIs: "Drata automates the proof that your security program works. Evidence collected continuously. Controls mapped and monitored. When a prospect sends a security questionnaire, your Trust Center handles it. When an auditor shows up, you're not scrambling — the work is already done. That's the difference between managing compliance and managing trust.",
+  pillars: [
+    { name: "Compliance", desc: "Multi-framework automation. Map controls once, satisfy 30+ frameworks. 300+ integrations. Audit-ready year-round, not just at audit time." },
+    { name: "Trust Center", desc: "Buyers self-serve certs, policies, and reports on demand. NDA-gated. Live from the underlying compliance platform — not a static document library. 1/3 of Cloud 100 uses it." },
+    { name: "AI Questionnaire Assistance", desc: "~89% answer rate from your approved knowledge base (2M+ answers, production metric). Chrome Extension works in any portal. Human review before anything goes out." },
+    { name: "GRC", desc: "Risk register, control ownership, policy lifecycle, FAIR methodology. Risk linked to controls in real time — not point-in-time. Constellation view for risk visualization." },
+    { name: "TPRM", desc: "Criteria-driven, evidence-first vendor assessments. Trust Graph auto-collects vendor docs. 4x faster (16 hrs → ~4 hrs). Findings connect to risk register and controls." },
+  ],
+  faqs: [
+    { q: "Are you a GRC platform?", a: "Yes — cyber GRC specifically. Multi-framework compliance, security questionnaire response, and vendor risk management. If enterprise risk management outside the security domain is the primary use case, that's not our focus today. Qualify out early if that's what they need." },
+    { q: "How long until value?", a: "Trust Center: live within days. First framework readiness: 30–60 days. Full continuous compliance unlock: 60–90 days after connecting integrations. Scope a realistic timeline on the first call." },
+    { q: "What do most customers replace?", a: "Spreadsheets and manual audit prep, a point solution like Vanta or ZenGRC, or a GRC platform like ServiceNow / Archer that's too broad for the compliance team to actually use. We replace the manual work and the tools that digitized it without eliminating it." },
+    { q: "Trial or POC?", a: "Structured 30-day pilots scoped to one framework or one product area. No open self-serve trial — the value is in connecting to your actual stack. Most pilots deliver enough evidence for an internal business case. POC carries to production (unlike Vanta)." },
+    { q: "What about AI agent governance?", a: "AI agent governance is an open market with no incumbent — that's where we're building. Drata supports AI inventory management and AI control testing, so customers are covered both for using AI and for being audited on AI use. This is the next frontier — position it with forward-looking buyers." },
+    { q: "Why not Vanta?", a: "Vanta is going wider on traditional GRC. We're going deeper on agentic. Practical differences: Drata Trust Center handles inbound automatically; Vanta your team reviews everything. On TPRM, criteria-driven vs questionnaire summaries. On pricing: if they're moving off Vanta due to cost, we price on usage and scale, not aggressive renewal increases." },
+  ]
+};
+
+// ─── SECTION METADATA ────────────────────────────────────────────────────────
+const sectionMeta = {
+  situation: { border:"#4F46E5", badge:"#4F46E5", label:"Situation" },
+  pain:      { border:"#DC2626", badge:"#DC2626", label:"Pain" },
+  impact:    { border:"#D97706", badge:"#D97706", label:"Impact" },
+  goals:     { border:"#059669", badge:"#059669", label:"Goals" },
+  timeline:  { border:"#7C3AED", badge:"#7C3AED", label:"Timeline" },
+  econ:      { border:"#0891B2", badge:"#0891B2", label:"Econ Buyer" },
+};
+const sectionOrder = ["situation","pain","impact","goals","timeline","econ"];
+
+// ─── COMPONENTS ──────────────────────────────────────────────────────────────
+
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(()=>setCopied(false),1500); });
+    } else {
+      const ta = document.createElement('textarea'); ta.value = text;
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      setCopied(true); setTimeout(()=>setCopied(false),1500);
+    }
+  };
+  return (
+    <button onClick={copy} style={{ background:copied?"#059669":"#1E2235", border:"1px solid #2D3151", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:11, color:copied?"#fff":"#64748B", fontWeight:600, whiteSpace:"nowrap", transition:"all 0.15s", minWidth:58, flexShrink:0 }}>
+      {copied ? "✓ Done" : "Copy"}
+    </button>
+  );
+}
+
+function DiscoveryTab() {
+  const [activePillar, setActivePillar] = useState(0);
+  const [activePersona, setActivePersona] = useState(0);
+  const [openSections, setOpenSections] = useState({});
+  const pillar = discoveryData.pillars[activePillar];
+  const persona = pillar.personas[activePersona];
+  const toggleSection = (id) => setOpenSections(prev => ({...prev, [id]: !prev[id]}));
+  const scrollTo = (sid) => {
+    const el = document.getElementById('disc-sec-'+sid);
+    if (el) el.scrollIntoView({behavior:'smooth',block:'start'});
+    setOpenSections(prev => ({...prev, [sid]: true}));
+  };
+  return (
+    <div>
+      {/* Pillar tabs */}
+      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+        {discoveryData.pillars.map((p,i) => (
+          <button key={p.id} onClick={()=>{setActivePillar(i);setActivePersona(0);setOpenSections({});}}
+            style={{padding:"9px 18px",border:"none",cursor:"pointer",fontWeight:600,fontSize:13,borderRadius:8,
+              background:activePillar===i?"#4F46E5":"#1A1D2E",color:activePillar===i?"#fff":"#64748B",
+              border:"1px solid",borderColor:activePillar===i?"#4F46E5":"#2D3151",transition:"all 0.15s"}}>
+            {p.icon} {p.label}
+          </button>
+        ))}
+      </div>
+      <div style={{background:"#1E2235",border:"1px solid #2D3151",borderRadius:10,padding:"11px 16px",marginBottom:14,fontSize:13,color:"#94A3B8"}}>{pillar.icon} {pillar.subtitle}</div>
+      {/* Persona toggle */}
+      <div style={{display:"flex",background:"#1A1D2E",borderRadius:10,padding:4,marginBottom:18,border:"1px solid #2D3151"}}>
+        {pillar.personas.map((p,i) => (
+          <button key={p.id} onClick={()=>{setActivePersona(i);setOpenSections({});}}
+            style={{flex:1,padding:"10px 16px",border:"none",cursor:"pointer",borderRadius:8,fontWeight:600,fontSize:13,transition:"all 0.15s",background:activePersona===i?"#4F46E5":"transparent",color:activePersona===i?"#fff":"#64748B"}}>
+            {p.label}<div style={{fontSize:11,fontWeight:400,opacity:0.85,marginTop:2}}>{p.role}</div>
+          </button>
+        ))}
+      </div>
+      {/* Persona card */}
+      <div style={{background:"#1A1D2E",border:"1px solid #2D3151",borderRadius:12,padding:16,marginBottom:18}}>
+        <div style={{fontSize:11,color:"#6366F1",fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10}}>Persona Profile</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {[{label:"Common Titles",value:persona.titles},{label:"Primary Driver",value:persona.driver},{label:"Cares Most About",value:persona.caresMost},{label:"Cares Less About",value:persona.caresLess},{label:"Buys When",value:persona.buysWhen},{label:"🎯 Win Signal",value:persona.winSignal}].map(r => (
+            <div key={r.label} style={{background:"#0F1117",borderRadius:8,padding:"10px 12px"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#4F46E5",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>{r.label}</div>
+              <div style={{fontSize:12.5,color:"#CBD5E1",lineHeight:1.5}}>{r.value}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:10,background:"#312E81",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#C7D2FE"}}>📊 <strong>Context:</strong> {persona.context}</div>
+      </div>
+      {/* Quick nav */}
+      <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+        {sectionOrder.map(sid => { const m = sectionMeta[sid]; return (
+          <button key={sid} onClick={()=>scrollTo(sid)} style={{padding:"5px 14px",border:`1px solid ${m.border}`,borderRadius:20,background:"transparent",cursor:"pointer",fontSize:12,fontWeight:600,color:m.border}}>{m.label}</button>
+        );})}
+      </div>
+      {/* Sections */}
+      {sectionOrder.map(sid => {
+        const section = persona.sections.find(s=>s.id===sid);
+        if (!section) return null;
+        const m = sectionMeta[sid];
+        const isOpen = openSections[sid];
+        return (
+          <div key={sid} id={"disc-sec-"+sid} style={{marginBottom:8,borderRadius:12,overflow:"hidden",border:`1px solid ${m.border}22`}}>
+            <button onClick={()=>toggleSection(sid)} style={{width:"100%",display:"flex",alignItems:"center",padding:"13px 18px",background:isOpen?"#1E2235":"#1A1D2E",border:"none",cursor:"pointer",gap:12,borderLeft:`4px solid ${m.border}`,textAlign:"left"}}>
+              <span style={{background:m.badge,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,letterSpacing:"0.06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{m.label}</span>
+              <span style={{fontSize:13,color:"#94A3B8",flex:1}}>{section.questions.length} questions{section.coach && <span style={{marginLeft:8,background:"#92400E30",color:"#FCD34D",fontSize:11,padding:"2px 8px",borderRadius:10,fontWeight:600}}>⚡ Coach note</span>}</span>
+              <span style={{color:m.border,fontSize:14,flexShrink:0}}>{isOpen?"▲":"▼"}</span>
+            </button>
+            {isOpen && (
+              <div style={{background:"#0F1117"}}>
+                {section.questions.map((q,qi) => (
+                  <div key={qi} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"13px 18px",borderBottom:qi<section.questions.length-1?"1px solid #1E2235":"none"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="#1A1D2E"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <span style={{minWidth:22,height:22,background:m.badge+"25",color:m.badge,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,marginTop:1,flexShrink:0}}>{qi+1}</span>
+                    <span style={{flex:1,fontSize:13.5,lineHeight:1.65,color:"#E2E8F0"}}>{q}</span>
+                    <CopyButton text={q} />
+                  </div>
+                ))}
+                {section.coach && (
+                  <div style={{margin:"8px 16px 12px",background:"#78350F18",border:"1px solid #92400E40",borderRadius:8,padding:"12px 14px"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#FCD34D",marginBottom:6,letterSpacing:"0.05em"}}>⚡ COACH NOTE</div>
+                    <div style={{fontSize:12.5,color:"#FDE68A",lineHeight:1.65}}>{section.coach}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function BattleCardTab() {
+  const [activeCard, setActiveCard] = useState(0);
+  const [openItems, setOpenItems] = useState({});
+  const card = battleCards[activeCard];
+  const toggle = (id) => setOpenItems(prev=>({...prev,[id]:!prev[id]}));
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:6,marginBottom:18,flexWrap:"wrap"}}>
+        {battleCards.map((c,i) => (
+          <button key={c.id} onClick={()=>{setActiveCard(i);setOpenItems({});}}
+            style={{padding:"9px 16px",border:"1px solid",borderColor:activeCard===i?c.color:"#2D3151",cursor:"pointer",fontWeight:600,fontSize:13,borderRadius:8,
+              background:activeCard===i?c.color+"22":"#1A1D2E",color:activeCard===i?c.color:"#64748B",transition:"all 0.15s"}}>
+            {c.icon} {c.label}
+          </button>
+        ))}
+      </div>
+
+      {card.id === "differentiators" && (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {card.pillars.map(p => (
+            <div key={p.name} style={{background:"#1A1D2E",border:"1px solid #2D3151",borderRadius:12,padding:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#A5B4FC",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:"#4F46E5",display:"inline-block",flexShrink:0}}></span>
+                {p.name}
+              </div>
+              {p.points.map((pt,i) => (
+                <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
+                  <span style={{color:"#4F46E5",fontSize:14,marginTop:1,flexShrink:0}}>✓</span>
+                  <span style={{fontSize:12.5,color:"#CBD5E1",lineHeight:1.55}}>{pt}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {card.id === "vs_vanta" && (
+        <div style={{background:"#1A1D2E",border:"1px solid #2D3151",borderRadius:12,overflow:"hidden"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 1fr",background:"#0F1117",borderBottom:"1px solid #2D3151"}}>
+            <div style={{padding:"12px 16px",fontSize:11,fontWeight:700,color:"#6366F1",textTransform:"uppercase",letterSpacing:"0.08em"}}>Area</div>
+            <div style={{padding:"12px 16px",fontSize:11,fontWeight:700,color:"#4F46E5",textTransform:"uppercase",letterSpacing:"0.08em"}}>✓ Drata</div>
+            <div style={{padding:"12px 16px",fontSize:11,fontWeight:700,color:"#64748B",textTransform:"uppercase",letterSpacing:"0.08em"}}>✗ Vanta</div>
+          </div>
+          {card.comparisons.map((row,i) => (
+            <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 1fr",borderBottom:i<card.comparisons.length-1?"1px solid #0F1117":"none",background:i%2===0?"transparent":"#0F111740"}}>
+              <div style={{padding:"11px 16px",fontSize:12.5,color:"#94A3B8",fontWeight:600}}>{row.area}</div>
+              <div style={{padding:"11px 16px",fontSize:12,color:"#86EFAC",lineHeight:1.5}}>{row.drata}</div>
+              <div style={{padding:"11px 16px",fontSize:12,color:"#F87171",lineHeight:1.5}}>{row.vanta}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {card.id === "objections" && (
+        <div>
+          {card.objections.map((obj,i) => (
+            <div key={i} style={{marginBottom:8,borderRadius:12,overflow:"hidden",border:"1px solid #2D3151"}}>
+              <button onClick={()=>toggle(i)} style={{width:"100%",display:"flex",alignItems:"center",padding:"14px 18px",background:openItems[i]?"#1E2235":"#1A1D2E",border:"none",cursor:"pointer",gap:12,borderLeft:"4px solid #059669",textAlign:"left"}}>
+                <span style={{fontSize:13,color:openItems[i]?"#86EFAC":"#E2E8F0",fontWeight:600,flex:1}}>"{obj.q}"</span>
+                <span style={{color:"#059669",fontSize:14,flexShrink:0}}>{openItems[i]?"▲":"▼"}</span>
+              </button>
+              {openItems[i] && (
+                <div style={{background:"#0F1117",padding:"14px 18px"}}>
+                  <div style={{fontSize:13,color:"#CBD5E1",lineHeight:1.7}}>{obj.a}</div>
+                  <div style={{marginTop:10}}><CopyButton text={obj.a} /></div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {card.id === "qualify_out" && (
+        <div>
+          <div style={{background:"#78350F18",border:"1px solid #92400E40",borderRadius:10,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#FDE68A"}}>
+            ⚠️ Qualifying out early is a sign of credibility, not weakness. Protecting deal quality protects your pipeline.
+          </div>
+          {card.rules.map((r,i) => (
+            <div key={i} style={{background:"#1A1D2E",border:"1px solid #2D3151",borderRadius:12,padding:16,marginBottom:10}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#FCD34D",marginBottom:8,display:"flex",gap:8,alignItems:"flex-start"}}>
+                <span style={{background:"#78350F",padding:"2px 8px",borderRadius:6,whiteSpace:"nowrap",fontSize:11}}>SIGNAL</span>
+                {r.trigger}
+              </div>
+              <div style={{fontSize:12.5,color:"#CBD5E1",lineHeight:1.6,borderTop:"1px solid #2D3151",paddingTop:10,marginTop:4}}>
+                <span style={{color:"#6366F1",fontWeight:600}}>Action: </span>{r.action}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ROITab() {
+  const [activeSeg, setActiveSeg] = useState(0);
+  const seg = roiData.segments[activeSeg];
+
+  return (
+    <div>
+      <div style={{display:"flex",background:"#1A1D2E",borderRadius:10,padding:4,marginBottom:18,border:"1px solid #2D3151"}}>
+        {roiData.segments.map((s,i) => (
+          <button key={s.id} onClick={()=>setActiveSeg(i)}
+            style={{flex:1,padding:"10px 16px",border:"none",cursor:"pointer",borderRadius:8,fontWeight:600,fontSize:13,transition:"all 0.15s",background:activeSeg===i?s.color:"transparent",color:activeSeg===i?"#fff":"#64748B"}}>
+            {s.label}<div style={{fontSize:11,fontWeight:400,opacity:0.85,marginTop:2}}>{s.subtitle}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* At a glance */}
+      <div style={{background:"#1A1D2E",border:`1px solid ${seg.color}40`,borderRadius:10,padding:"11px 16px",marginBottom:14,fontSize:12.5,color:"#94A3B8",borderLeft:`4px solid ${seg.color}`}}>
+        📊 <strong style={{color:"#E2E8F0"}}>At a glance:</strong> {seg.atAGlance}
+      </div>
+
+      {/* Soundbite */}
+      <div style={{background:"#1E2235",border:"1px solid #2D3151",borderRadius:12,padding:16,marginBottom:18}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#6366F1",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>🎙️ Seller Soundbite</div>
+        <div style={{fontSize:13.5,color:"#E2E8F0",lineHeight:1.7,fontStyle:"italic"}}>"{seg.soundbite}"</div>
+        <div style={{marginTop:10}}><CopyButton text={seg.soundbite} /></div>
+      </div>
+
+      {/* Metrics */}
+      <div style={{marginBottom:18}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#6366F1",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>ROI by Area</div>
+        {seg.metrics.map((m,i) => (
+          <div key={i} style={{background:"#1A1D2E",border:"1px solid #2D3151",borderRadius:10,padding:"12px 16px",marginBottom:8,display:"grid",gridTemplateColumns:"1.5fr 1.5fr 1fr",gap:12,alignItems:"center"}}>
+            <div>
+              <div style={{fontSize:11,color:"#6366F1",fontWeight:600,marginBottom:4}}>{m.area}</div>
+              <div style={{fontSize:12,color:"#64748B"}}>Before: {m.before}</div>
+            </div>
+            <div style={{fontSize:13,fontWeight:700,color:seg.color}}>{m.after}</div>
+            <div style={{fontSize:12,color:"#CBD5E1"}}>{m.impact}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Volume growth */}
+      <div style={{marginBottom:18}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#6366F1",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>Volume Growth Outlook (18 Months)</div>
+        <div style={{background:"#1A1D2E",border:"1px solid #2D3151",borderRadius:12,overflow:"hidden"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 0.6fr 0.8fr 1.5fr",background:"#0F1117",borderBottom:"1px solid #2D3151",padding:"10px 16px"}}>
+            {["Area","Today","18 Months","What's Driving It"].map(h => <div key={h} style={{fontSize:11,fontWeight:700,color:"#64748B",textTransform:"uppercase",letterSpacing:"0.06em"}}>{h}</div>)}
+          </div>
+          {seg.growth.map((g,i) => (
+            <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 0.6fr 0.8fr 1.5fr",padding:"11px 16px",borderBottom:i<seg.growth.length-1?"1px solid #1E2235":"none",alignItems:"center"}}>
+              <div style={{fontSize:12.5,color:"#E2E8F0",fontWeight:600}}>{g.area}</div>
+              <div style={{fontSize:12.5,color:"#94A3B8"}}>{g.today}</div>
+              <div style={{fontSize:12.5,color:seg.color,fontWeight:700}}>{g.in18m}</div>
+              <div style={{fontSize:12,color:"#64748B"}}>{g.driver}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Proof points */}
+      <div>
+        <div style={{fontSize:11,fontWeight:700,color:"#6366F1",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>Customer Proof Points</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {seg.proofPoints.map((p,i) => (
+            <div key={i} style={{background:"#1A1D2E",border:"1px solid #2D3151",borderRadius:10,padding:14}}>
+              <div style={{fontSize:12,fontWeight:700,color:seg.color,marginBottom:6}}>{p.company}</div>
+              <div style={{fontSize:12.5,color:"#CBD5E1",lineHeight:1.6,fontStyle:"italic"}}>"{p.quote}"</div>
+              {p.role && <div style={{fontSize:11,color:"#64748B",marginTop:6}}>— {p.role}</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlatformTab() {
+  const [openFaq, setOpenFaq] = useState(null);
+  return (
+    <div>
+      {/* What is */}
+      <div style={{background:"linear-gradient(135deg,#1E1B4B,#312E81)",borderRadius:12,padding:20,marginBottom:18,border:"1px solid #312E81"}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#A5B4FC",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>What Is Drata?</div>
+        <div style={{fontSize:14,color:"#EEF2FF",lineHeight:1.75}}>{platformData.whatIs}</div>
+      </div>
+
+      {/* Five pillars */}
+      <div style={{marginBottom:18}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#6366F1",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>Five Platform Pillars</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {platformData.pillars.map((p,i) => (
+            <div key={i} style={{background:"#1A1D2E",border:"1px solid #2D3151",borderRadius:10,padding:14}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#A5B4FC",marginBottom:6}}>{p.name}</div>
+              <div style={{fontSize:12.5,color:"#CBD5E1",lineHeight:1.6}}>{p.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Holistic differentiators bar */}
+      <div style={{background:"#1A1D2E",border:"1px solid #2D3151",borderRadius:12,padding:16,marginBottom:18}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#6366F1",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:12}}>Four Holistic Differentiators</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {[
+            {label:"Enterprise Grade","desc":"One platform. 300+ integrations. Multi-framework cross-mapping. Dedicated advisors included."},
+            {label:"Continuous","desc":"Automated daily tests. Real-time posture. Drift caught before your auditor finds it."},
+            {label:"Agentic AI","desc":"~89% questionnaire accuracy. AI agents for TPRM. Trust Center deflects reviews. Learns from your data."},
+            {label:"Trusted","desc":"Single-tenant isolation. Uneditable evidence. Human-in-the-loop. 4.7 stars / 97% support on G2."},
+          ].map((d,i) => (
+            <div key={i} style={{background:"#0F1117",borderRadius:8,padding:"12px 14px"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#4F46E5",marginBottom:4}}>{d.label}</div>
+              <div style={{fontSize:12,color:"#94A3B8",lineHeight:1.55}}>{d.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div>
+        <div style={{fontSize:11,fontWeight:700,color:"#6366F1",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>Common Questions on Calls</div>
+        {platformData.faqs.map((f,i) => (
+          <div key={i} style={{marginBottom:8,borderRadius:12,overflow:"hidden",border:"1px solid #2D3151"}}>
+            <button onClick={()=>setOpenFaq(openFaq===i?null:i)}
+              style={{width:"100%",display:"flex",alignItems:"center",padding:"14px 18px",background:openFaq===i?"#1E2235":"#1A1D2E",border:"none",cursor:"pointer",gap:12,borderLeft:"4px solid #6366F1",textAlign:"left"}}>
+              <span style={{fontSize:13,color:openFaq===i?"#A5B4FC":"#E2E8F0",fontWeight:600,flex:1}}>Q: {f.q}</span>
+              <span style={{color:"#6366F1",fontSize:14,flexShrink:0}}>{openFaq===i?"▲":"▼"}</span>
+            </button>
+            {openFaq===i && (
+              <div style={{background:"#0F1117",padding:"14px 18px"}}>
+                <div style={{fontSize:13,color:"#CBD5E1",lineHeight:1.7}}>{f.a}</div>
+                <div style={{marginTop:10}}><CopyButton text={f.a} /></div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+const tabs = [
+  { id: "discovery", label: "Discovery Guide", icon: "🎯" },
+  { id: "battle", label: "Battle Cards", icon: "⚔️" },
+  { id: "roi", label: "ROI & Proof", icon: "📊" },
+  { id: "platform", label: "Platform & FAQ", icon: "🏛️" },
+];
+
+function App() {
+  const [activeTab, setActiveTab] = useState("discovery");
+
+  return (
+    <div style={{fontFamily:"inherit",minHeight:"100vh",background:"#0F1117",color:"#F1F5F9"}}>
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,#1E1B4B 0%,#312E81 100%)",borderBottom:"1px solid #312E81",padding:"18px 24px 0",position:"sticky",top:0,zIndex:100}}>
+        <div style={{maxWidth:920,margin:"0 auto"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+            <div style={{width:28,height:28,background:"#4F46E5",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff",flexShrink:0}}>D</div>
+            <span style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",color:"#A5B4FC",textTransform:"uppercase"}}>Drata · SDR Hub</span>
+            <span style={{marginLeft:"auto",fontSize:11,color:"#6366F1",fontWeight:500,whiteSpace:"nowrap"}}>June 2026 · Confidential</span>
+          </div>
+          <h1 style={{fontSize:20,fontWeight:700,margin:"6px 0 2px",color:"#EEF2FF"}}>Command of the Message</h1>
+          <p style={{fontSize:12,color:"#818CF8",marginBottom:14}}>SDR Reference Hub · Discovery · Battle Cards · ROI · Platform</p>
+          <div style={{display:"flex",gap:2,overflowX:"auto"}}>
+            {tabs.map(t => (
+              <button key={t.id} onClick={()=>setActiveTab(t.id)}
+                style={{padding:"10px 18px",border:"none",cursor:"pointer",fontWeight:600,fontSize:13,borderRadius:"8px 8px 0 0",
+                  background:activeTab===t.id?"#F1F5F9":"transparent",color:activeTab===t.id?"#1E1B4B":"#A5B4FC",
+                  transition:"all 0.15s",whiteSpace:"nowrap"}}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:920,margin:"0 auto",padding:"20px 24px 48px"}}>
+        {activeTab === "discovery" && <DiscoveryTab />}
+        {activeTab === "battle" && <BattleCardTab />}
+        {activeTab === "roi" && <ROITab />}
+        {activeTab === "platform" && <PlatformTab />}
+      </div>
+
+      <div style={{textAlign:"center",paddingBottom:24,fontSize:11,color:"#1E2235"}}>
+        Based on 947 Gong transcripts · 61 won deals · April 2026 · Confidential — do not distribute externally
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
